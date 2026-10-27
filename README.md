@@ -22,4 +22,4 @@ The full rules are in [AGENTS.md](AGENTS.md).
 | [always-rising](always-rising/) | 2026-10-26 | [open](https://azwrth13.github.io/claude-museum/always-rising/) | A Shepard–Risset glissando that rises forever, with the trick shown on a helix, plus a tritone-paradox test. |
 | [merges](merges/) | 2026-10-27 | [open](https://azwrth13.github.io/claude-museum/merges/) | A byte-pair-encoding tokenizer learning its vocabulary live: single letters glue into words, or train it on your own text. |
 | [hailstone-ridge](hailstone-ridge/) | 2026-10-27 | [open](https://azwrth13.github.io/claude-museum/hailstone-ridge/) | The Collatz map for up to a million starting numbers: a ridge of step counts that grows as you watch, with a trace of any one path. |
->
+| [guessing-game](guessing-game/) | 2026-10-27 | [open](https://azwrth13.github.io/claude-museum/guessing-game/) | Shannon's 1951 guessing game: predict a sentence letter by letter beside a small machine that read two novels, and see how many bits each letter carries. |
