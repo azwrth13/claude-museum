@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hailstone Ridge</title>
+<meta name="description" content="Every starting number, sent through the Collatz rule and counted. A ridge appears that nobody has proved will always come down to one.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #eef0f1; --fg: #16191c; --muted: #5d656c; --line: #cfd4d8; --accent: #3d5a73;
+  --plate: #0f1316; --plate-fg: #c9d3da; --plate-muted: #7d8a94; --plate-line: #26303a;
+  --gold: #f2d27a;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --body: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15181b; --fg: #e6e9ec; --muted: #9aa3ab; --line: #2c3237; --accent: #9fbfd9; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15181b; --fg: #e6e9ec; --muted: #9aa3ab; --line: #2c3237; --accent: #9fbfd9; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font-family: var(--body); font-size: 18px; line-height: 1.55;
+  padding: 40px max(16px, env(safe-area-inset-left, 0px)) 72px max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 960px; margin: 0 auto; display: grid; gap: 28px; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.back { margin: 0; font-family: var(--display); font-weight: 500; font-size: 15px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+header { display: grid; gap: 10px; max-width: 40rem; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(40px, 8vw, 72px); line-height: .95; letter-spacing: -.025em; margin: 0; }
+header p { margin: 0; }
+
+.plate {
+  background: var(--plate); color: var(--plate-fg); border-radius: 6px;
+  padding: 14px; box-shadow: 0 30px 60px -30px rgb(0 0 0 / .55);
+  display: grid; gap: 12px;
+}
+.plate canvas { display: block; width: 100%; height: auto; border-radius: 3px; touch-action: manipulation; }
+#scatter { cursor: crosshair; }
+
+.bar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; font-family: var(--mono); font-size: 13px; color: var(--plate-muted); }
+.bar label { display: inline-flex; align-items: center; gap: 6px; }
+.bar button, .bar select, .bar input {
+  font: inherit; color: var(--plate-fg); background: #1a2127; border: 1px solid var(--plate-line);
+  border-radius: 4px; padding: 6px 10px; min-height: 36px;
+}
+.bar button { cursor: pointer; }
+.bar button:hover { border-color: var(--gold); }
+.bar input { width: 9.5em; }
+.bar .grow { flex: 1 1 auto; }
+
+.readout { font-family: var(--mono); font-size: 14px; color: var(--plate-fg); margin: 0; min-height: 1.5em; }
+.readout span { color: var(--gold); }
+
+section.about { display: grid; gap: 10px; max-width: 42rem; }
+section.about h2 { font-family: var(--display); font-size: 24px; line-height: 1.1; margin: 8px 0 0; }
+section.about p { margin: 0; }
+footer { border-top: 1px solid var(--line); padding-top: 18px; color: var(--muted); font-size: 16px; max-width: 42rem; }
+footer p { margin: 0; }
+
+@media (max-width: 560px) {
+  body { font-size: 17px; }
+  .bar input { width: 7.5em; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+</style>
+
+<body>
+<main>
+  <p class="back"><a href="https://azwrth13.github.io/claude-museum/">&larr; Claude Museum</a></p>
+
+  <header>
+    <p class="eyebrow">Exhibit · Claude Haiku 5.5</p>
+    <h1>Hailstone Ridge</h1>
+    <p>Take a whole number. If it is even, halve it. If it is odd, triple it and add one. Repeat. Each dot below is a starting number, placed by how many steps its path takes to reach 1. Every number that has been checked by computer has come down. Nobody has shown that every number must.</p>
+  </header>
+
+  <section class="plate" aria-label="Scatter plot of starting numbers against steps to reach 1">
+    <canvas id="scatter" width="900" height="460" role="img" aria-label="A ridge of dots rising and falling, each dot a starting number plotted against its number of steps to reach 1. Gold points mark new record heights."></canvas>
+    <div class="bar">
+      <button id="play" type="button">Pause</button>
+      <label>Numbers <select id="range">
+        <option value="10000">1 to 10,000</option>
+        <option value="100000" selected>1 to 100,000</option>
+        <option value="1000000">1 to 1,000,000</option>
+      </select></label>
+      <label>Speed <select id="speed">
+        <option value="0.5">0.5×</option>
+        <option value="1" selected>1×</option>
+        <option value="2">2×</option>
+        <option value="4">4×</option>
+      </select></label>
+      <span class="grow"></span>
+      <span>Click the ridge to trace a path.</span>
+    </div>
+  </section>
+
+  <section class="plate" aria-label="Trajectory of one starting number">
+    <canvas id="trace" width="900" height="260" role="img" aria-label="The path of one starting number, as the log of each value over the steps it takes to reach 1."></canvas>
+    <div class="bar">
+      <label>Trace starting number <input id="traceN" type="number" min="1" max="1000000000" step="1" value="27"></label>
+      <button id="random" type="button">Random</button>
+      <button id="ten" type="button">27 (famous)</button>
+    </div>
+    <p id="readout" class="readout" aria-live="polite"></p>
+  </section>
+
+  <section class="about">
+    <h2>What you are looking at</h2>
+    <p>The left-to-right axis is the starting number. The vertical axis is how many halvings and triplings it takes to land on 1. Gold points are record heights: the numbers that beat every smaller number on the count. They arrive at irregular intervals, and that irregularity is most of what the picture is about.</p>
+    <p>The path panel shows the trajectory of one number on a log scale. Some paths climb to thousands before falling. Some barely wander. The rule never says which.</p>
+  </section>
+
+  <footer>
+    <p>The Collatz conjecture is unproven. Computer checks have covered every starting number up to very large bounds, but a bound is not a proof. Notes on how this was built are in <a href="https://github.com/azwrth13/claude-museum/blob/main/hailstone-ridge/NOTES.md">NOTES.md</a>.</p>
+  </footer>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- state ----------
+  var N = 100000;            // how many starting numbers the ridge covers
+  var memo = null;           // memo[n] = steps for n to reach 1, for n <= N
+  var YMAX = 350;            // vertical scale ceiling for the plot
+  var PX = 46, PY = 14;      // plot origin inside the scatter canvas
+  var PW = 0, PH = 0;        // plot size in pixels
+  var density = null;        // Float32Array of point counts per pixel
+  var blurred = null;        // soft copy of density, so the ridge reads as a surface
+  var img = null;            // ImageData for the plot area
+  var cursor = 0;            // last starting number revealed
+  var records = [];          // [n, steps] pairs at which a new record height was set
+  var recMax = -1;
+  var playing = true;
+  var traceN = 27;
+
+  var scatter = document.getElementById("scatter");
+  var sctx = scatter.getContext("2d");
+  var trace = document.getElementById("trace");
+  var tctx = trace.getContext("2d");
+  var readout = document.getElementById("readout");
+  var playBtn = document.getElementById("play");
+  var rangeSel = document.getElementById("range");
+  var speedSel = document.getElementById("speed");
+  var traceInput = document.getElementById("traceN");
+
+  PW = scatter.width - PX - 12;
+  PH = scatter.height - PY - 36;
+  density = new Float32Array(PW * PH);
+  blurred = new Float32Array(PW * PH);
+  img = sctx.createImageData(PW, PH);
+
+  // Colour ramp for point density: dark plate, to slate blue, to warm gold.
+  var LUT = new Uint8Array(256 * 3);
+  (function () {
+    var stops = [[0, [16, 20, 23]], [0.35, [46, 76, 98]], [0.7, [125, 176, 204]], [1, [248, 216, 128]]];
+    for (var i = 0; i < 256; i++) {
+      var t = i / 255, a = stops[0], b = stops[stops.length - 1];
+      for (var k = 0; k < stops.length - 1; k++) {
+        if (t >= stops[k][0] && t <= stops[k + 1][0]) { a = stops[k]; b = stops[k + 1]; break; }
+      }
+      var u = b[0] === a[0] ? 0 : (t - a[0]) / (b[0] - a[0]);
+      for (var c = 0; c < 3; c++) LUT[i * 3 + c] = Math.round(a[1][c] + (b[1][c] - a[1][c]) * u);
+    }
+  })();
+
+  // ---------- Collatz ----------
+  function buildMemo(limit) {
+    var m = new Uint16Array(limit + 1);
+    for (var n = 2; n <= limit; n++) {
+      var x = n, s = 0;
+      // Walk until the value drops below n, where the answer is already memoised.
+      while (x >= n) {
+        x = (x % 2 === 0) ? x / 2 : 3 * x + 1;
+        s++;
+      }
+      m[n] = s + m[x];
+    }
+    return m;
+  }
+
+  function trajectory(n) {
+    var seq = [n], x = n;
+    while (x !== 1) {
+      x = (x % 2 === 0) ? x / 2 : 3 * x + 1;
+      seq.push(x);
+    }
+    return seq;
+  }
+
+  function ymaxFor(limit) {
+    if (limit <= 10000) return 280;
+    if (limit <= 100000) return 370;
+    return 560;
+  }
+
+  // ---------- scatter ----------
+  function addPoint(n) {
+    var s = memo[n];
+    var px = Math.min(PW - 1, Math.floor((n - 1) * PW / N));
+    var py = PH - 1 - Math.min(PH - 1, Math.round(s / YMAX * (PH - 1)));
+    density[py * PW + px] += 1;
+    if (s > recMax) { recMax = s; records.push([n, s]); }
+  }
+
+  function revealUpTo(target) {
+    if (target > N) target = N;
+    for (var n = cursor + 1; n <= target; n++) addPoint(n);
+    if (target > cursor) cursor = target;
+  }
+
+  function resetReveal() {
+    density.fill(0);
+    records = [];
+    recMax = -1;
+    cursor = 0;
+    revealUpTo(Math.max(1, Math.floor(N * 0.03)));
+  }
+
+  function drawScatter() {
+    var W = scatter.width, H = scatter.height;
+    sctx.fillStyle = "#0f1316";
+    sctx.fillRect(0, 0, W, H);
+
+    // soft 3x3 blur of the density, then density -> pixels
+    var pw = PW, ph = PH, src = density, dst = blurred;
+    for (var yy0 = 0; yy0 < ph; yy0++) {
+      var up = yy0 > 0 ? yy0 - 1 : yy0, dn = yy0 < ph - 1 ? yy0 + 1 : yy0;
+      for (var xx0 = 0; xx0 < pw; xx0++) {
+        var lf = xx0 > 0 ? xx0 - 1 : xx0, rt = xx0 < pw - 1 ? xx0 + 1 : xx0;
+        dst[yy0 * pw + xx0] = (4 * src[yy0 * pw + xx0] +
+          2 * (src[yy0 * pw + lf] + src[yy0 * pw + rt] + src[up * pw + xx0] + src[dn * pw + xx0]) +
+          src[up * pw + lf] + src[up * pw + rt] + src[dn * pw + lf] + src[dn * pw + rt]) / 4;
+      }
+    }
+    var d = img.data, CAP = Math.log(12);
+    for (var i = 0, p = 0; i < blurred.length; i++, p += 4) {
+      var v = blurred[i];
+      if (v <= 0) { d[p] = 15; d[p + 1] = 19; d[p + 2] = 22; d[p + 3] = 255; continue; }
+      var t = Math.log(1 + v) / CAP;
+      var idx = t >= 1 ? 255 : Math.floor(t * 255);
+      d[p] = LUT[idx * 3]; d[p + 1] = LUT[idx * 3 + 1]; d[p + 2] = LUT[idx * 3 + 2]; d[p + 3] = 255;
+    }
+    sctx.putImageData(img, PX, PY);
+
+    // axes
+    sctx.fillStyle = "#7d8a94";
+    sctx.strokeStyle = "#26303a";
+    sctx.font = "12px IBM Plex Mono, ui-monospace, monospace";
+    sctx.lineWidth = 1;
+    var step = YMAX <= 300 ? 50 : 100;
+    sctx.textAlign = "right";
+    sctx.textBaseline = "middle";
+    for (var y = 0; y <= YMAX; y += step) {
+      var yy = PY + PH - 1 - Math.round(y / YMAX * (PH - 1));
+      sctx.beginPath(); sctx.moveTo(PX - 4, yy + 0.5); sctx.lineTo(PX, yy + 0.5); sctx.stroke();
+      sctx.fillText(String(y), PX - 8, yy);
+    }
+    sctx.save();
+    sctx.translate(14, PY + PH / 2);
+    sctx.rotate(-Math.PI / 2);
+    sctx.textAlign = "center";
+    sctx.fillText("steps to reach 1", 0, 0);
+    sctx.restore();
+
+    sctx.textBaseline = "top";
+    sctx.textAlign = "center";
+    var ticks = [1, Math.round(N / 4), Math.round(N / 2), Math.round(3 * N / 4), N];
+    for (var k = 0; k < ticks.length; k++) {
+      var tx = PX + Math.min(PW - 1, Math.floor((ticks[k] - 1) * PW / N));
+      sctx.beginPath(); sctx.moveTo(tx + 0.5, PY + PH); sctx.lineTo(tx + 0.5, PY + PH + 4); sctx.stroke();
+      sctx.fillText(ticks[k].toLocaleString("en-US"), tx, PY + PH + 6);
+    }
+    sctx.textAlign = "right";
+    sctx.fillText("starting number", PX + PW, PY + PH + 22);
+
+    // record heights so far
+    if (records.length) {
+      sctx.strokeStyle = "rgba(242,210,122,0.55)";
+      sctx.lineWidth = 1.2;
+      sctx.beginPath();
+      for (var r = 0; r < records.length; r++) {
+        var rx = PX + Math.min(PW - 1, Math.floor((records[r][0] - 1) * PW / N));
+        var ry = PY + PH - 1 - Math.min(PH - 1, Math.round(records[r][1] / YMAX * (PH - 1)));
+        if (r === 0) sctx.moveTo(rx, ry); else { sctx.lineTo(rx, ry); }
+      }
+      sctx.stroke();
+      sctx.fillStyle = "#f2d27a";
+      for (var q = 0; q < records.length; q++) {
+        var qx = PX + Math.min(PW - 1, Math.floor((records[q][0] - 1) * PW / N));
+        var qy = PY + PH - 1 - Math.min(PH - 1, Math.round(records[q][1] / YMAX * (PH - 1)));
+        sctx.beginPath(); sctx.arc(qx, qy, 2.6, 0, Math.PI * 2); sctx.fill();
+      }
+    }
+
+    // the moving edge of the reveal
+    if (cursor < N) {
+      var cx = PX + Math.min(PW - 1, Math.floor(cursor * PW / N));
+      sctx.strokeStyle = "rgba(242,210,122,0.35)";
+      sctx.beginPath(); sctx.moveTo(cx + 0.5, PY); sctx.lineTo(cx + 0.5, PY + PH); sctx.stroke();
+    }
+
+    // the traced number
+    var tx2 = PX + Math.min(PW - 1, Math.floor((traceN - 1) * PW / N));
+    if (traceN >= 1 && traceN <= N) {
+      var ty2 = PY + PH - 1 - Math.min(PH - 1, Math.round(memo[traceN] / YMAX * (PH - 1)));
+      sctx.strokeStyle = "#ffffff";
+      sctx.lineWidth = 1.5;
+      sctx.beginPath(); sctx.arc(tx2, ty2, 5, 0, Math.PI * 2); sctx.stroke();
+    }
+  }
+
+  // ---------- trace ----------
+  function drawTrace() {
+    var W = trace.width, H = trace.height;
+    var seq = trajectory(traceN);
+    var steps = seq.length - 1;
+    var peak = 0, peakAt = 0;
+    for (var i = 0; i < seq.length; i++) if (seq[i] > peak) { peak = seq[i]; peakAt = i; }
+
+    var L = 52, T = 14, R = W - 14, B = H - 30;
+    var pw = R - L, ph = B - T;
+    var top = Math.log2(peak) * 1.08;
+    if (top < 1) top = 1;
+    function X(i) { return L + (steps === 0 ? 0 : i / steps * pw); }
+    function Y(v) { return B - Math.log2(v) / top * ph; }
+
+    tctx.fillStyle = "#0f1316";
+    tctx.fillRect(0, 0, W, H);
+
+    // reference: the starting value's level
+    var y0 = Y(traceN);
+    tctx.strokeStyle = "rgba(125,138,148,0.45)";
+    tctx.setLineDash([4, 5]);
+    tctx.beginPath(); tctx.moveTo(L, y0); tctx.lineTo(R, y0); tctx.stroke();
+    tctx.setLineDash([]);
+
+    // axes
+    tctx.strokeStyle = "#26303a";
+    tctx.beginPath(); tctx.moveTo(L, T); tctx.lineTo(L, B); tctx.lineTo(R, B); tctx.stroke();
+    tctx.fillStyle = "#7d8a94";
+    tctx.font = "12px IBM Plex Mono, ui-monospace, monospace";
+    tctx.textAlign = "right"; tctx.textBaseline = "middle";
+    var maxExp = Math.floor(top);
+    var expStep = maxExp > 20 ? 4 : (maxExp > 10 ? 2 : 1);
+    for (var e = 0; e <= maxExp; e += expStep) {
+      var yy = B - e / top * ph;
+      tctx.fillText("2^" + e, L - 8, yy);
+    }
+
+    // trajectory
+    tctx.strokeStyle = "#f2d27a";
+    tctx.lineWidth = 1.6;
+    tctx.beginPath();
+    for (var j = 0; j < seq.length; j++) {
+      var px = X(j), py = Y(seq[j]);
+      if (j === 0) tctx.moveTo(px, py); else tctx.lineTo(px, py);
+    }
+    tctx.stroke();
+
+    // peak marker
+    tctx.fillStyle = "#ffffff";
+    tctx.beginPath(); tctx.arc(X(peakAt), Y(peak), 3.5, 0, Math.PI * 2); tctx.fill();
+    tctx.textAlign = "left"; tctx.textBaseline = "bottom";
+    tctx.fillStyle = "#e6e9ec";
+    var labelX = Math.min(X(peakAt) + 8, R - 150);
+    tctx.fillText("peak " + peak.toLocaleString("en-US"), labelX, Math.max(T + 12, Y(peak) - 4));
+
+    // x axis label
+    tctx.fillStyle = "#7d8a94";
+    tctx.textAlign = "left"; tctx.textBaseline = "top";
+    tctx.fillText("0", L, B + 6);
+    tctx.textAlign = "right";
+    tctx.fillText(steps + " steps", R, B + 6);
+
+    readout.innerHTML = "n = <span>" + traceN.toLocaleString("en-US") + "</span> &nbsp;·&nbsp; steps to reach 1: <span>" +
+      steps + "</span> &nbsp;·&nbsp; peak: <span>" + peak.toLocaleString("en-US") + "</span> at step " + peakAt;
+  }
+
+  // ---------- loop ----------
+  function perFrame() {
+    var speed = parseFloat(speedSel.value) || 1;
+    return Math.max(1, Math.round(N / (25 * 60) * speed));
+  }
+
+  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function frame() {
+    if (playing && cursor < N) {
+      revealUpTo(cursor + perFrame());
+      if (cursor >= N) { playing = false; playBtn.textContent = "Replay"; }
+    }
+    drawScatter();
+    requestAnimationFrame(frame);
+  }
+
+  playBtn.addEventListener("click", function () {
+    if (cursor >= N) { resetReveal(); playing = true; playBtn.textContent = "Pause"; return; }
+    playing = !playing;
+    playBtn.textContent = playing ? "Pause" : "Play";
+  });
+
+  function setRange() {
+    N = parseInt(rangeSel.value, 10);
+    YMAX = ymaxFor(N);
+    memo = buildMemo(N);
+    if (traceN > N) traceN = N;
+    resetReveal();
+    if (reduced) { revealUpTo(N); playing = false; playBtn.textContent = "Replay"; }
+    else { playing = true; playBtn.textContent = "Pause"; }
+    drawTrace();
+  }
+  rangeSel.addEventListener("change", setRange);
+
+  function setTrace(n) {
+    if (!isFinite(n) || n < 1) return;
+    traceN = Math.min(1000000000, Math.floor(n));
+    traceInput.value = String(traceN);
+    drawTrace();
+  }
+
+  traceInput.addEventListener("change", function () { setTrace(parseInt(traceInput.value, 10)); });
+  traceInput.addEventListener("keydown", function (e) { if (e.key === "Enter") setTrace(parseInt(traceInput.value, 10)); });
+  document.getElementById("random").addEventListener("click", function () {
+    setTrace(1 + Math.floor(Math.random() * N));
+  });
+  document.getElementById("ten").addEventListener("click", function () { setTrace(27); });
+
+  scatter.addEventListener("click", function (e) {
+    var rect = scatter.getBoundingClientRect();
+    var cx = (e.clientX - rect.left) / rect.width * scatter.width;
+    if (cx < PX || cx > PX + PW) return;
+    var n = Math.round((cx - PX) / PW * N);
+    if (n < 1) n = 1;
+    if (n > N) n = N;
+    setTrace(n);
+  });
+
+  // ---------- start ----------
+  N = parseInt(rangeSel.value, 10);
+  YMAX = ymaxFor(N);
+  memo = buildMemo(N);
+  resetReveal();
+  if (reduced) { revealUpTo(N); playing = false; playBtn.textContent = "Replay"; }
+  drawTrace();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
