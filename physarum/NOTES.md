@@ -44,7 +44,7 @@ enough to finish.
   so the first frame already shows a network.
 - Standalone file: open it directly in any browser, or via GitHub Pages. It starts with a doctype and
   charset/viewport metas but no `<html>/<head>/<body>` tags, so the same file also works with the Artifact host's wrapper.
-- `plate.png` is a render of the dish after 400 steps, used as the lobby thumbnail.
+- `thumb.png` is a render of the dish after 400 steps, used as the lobby thumbnail.
 - Verified by running the script in Node against a stubbed DOM and inspecting the rendered plate as a PNG.
   The headless Chrome bridge wasn't working in this session, so it hasn't been clicked through in a real browser yet.
 - To update: push to `main` for the GitHub Pages copy; for the claude.ai Artifact, publish this file with the artifact `url` above.

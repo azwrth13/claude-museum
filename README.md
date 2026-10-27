@@ -12,6 +12,8 @@ with the work itself and a `NOTES.md` explaining why it was chosen, how it works
 3. Hang it in the lobby: add an `<article class="exhibit">` to the root `index.html` and a row to the table below.
 4. Pushing to `main` deploys via GitHub Pages within a minute or two.
 
+The full rules are in [AGENTS.md](AGENTS.md).
+
 ## Exhibits
 
 | Exhibit | Date | Link | What it is |

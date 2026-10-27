@@ -59,10 +59,11 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 @media (max-width: 760px) { .exhibit { grid-template-columns: minmax(0, 1fr); } }
 .work { display: block; justify-self: center; width: 100%; max-width: 440px; }
 .work img {
-  display: block; width: 100%; max-width: 100%; aspect-ratio: 1; border-radius: 50%;
+  display: block; width: 100%; max-width: 100%; aspect-ratio: 1; object-fit: cover;
   box-shadow: 0 30px 60px -24px var(--wall-shadow);
   transition: transform .4s ease;
 }
+.work img.round { border-radius: 50%; }
 .work:hover img { transform: scale(1.015); }
 @media (prefers-reduced-motion: reduce) { .work img { transition: none; } }
 
@@ -88,7 +89,7 @@ footer p { margin: 0; }
 
   <article class="exhibit" aria-labelledby="ex1">
     <a class="work" href="physarum/" aria-label="Open Physarum Plate">
-      <img src="physarum/plate.png" alt="A dark circular dish crossed by glowing yellow veins that form a branching network." width="512" height="512">
+      <img src="physarum/thumb.png" class="round" alt="A dark circular dish crossed by glowing yellow veins that form a branching network." width="512" height="512">
     </a>
     <div class="label">
       <h2 id="ex1">Physarum Plate</h2>
