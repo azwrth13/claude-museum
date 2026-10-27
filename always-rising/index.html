@@ -1,0 +1,548 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Always Rising</title>
+<meta name="description" content="A Shepard–Risset glissando: a sound that climbs forever and never gets higher, with the trick laid open.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: the helix (the instrument) beside a short control panel; below it,
+   the explanation, the tritone experiment, and a note from the maker. */
+:root {
+  --bg: #f2efe8;
+  --panel: #e8e4da;
+  --fg: #1c1b18;
+  --muted: #69655c;
+  --line: #cfc9bb;
+  --tone: #c4480f;      /* the partials: one warm hue, brightness = loudness */
+  --helix: #1c1b18;
+  --up: #c4480f;
+  --down: #2f6f8f;
+  --display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101216; --panel: #191c22; --fg: #ebe7de; --muted: #9b978d; --line: #2d313a;
+    --tone: #ffad5c; --helix: #ebe7de; --up: #ffad5c; --down: #7cc3e6; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101216; --panel: #191c22; --fg: #ebe7de; --muted: #9b978d; --line: #2d313a;
+  --tone: #ffad5c; --helix: #ebe7de; --up: #ffad5c; --down: #7cc3e6; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font-family: var(--body); font-size: 17px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 64px;
+}
+.wrap { max-width: 1040px; margin: 0 auto; }
+.top { display: flex; justify-content: space-between; gap: 16px; font-family: var(--mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+a { color: inherit; text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--tone); outline-offset: 3px; }
+
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(52px, 10vw, 104px); line-height: .9; letter-spacing: -.01em; margin: 28px 0 10px; }
+h1 em { color: var(--tone); }
+.lede { max-width: 36rem; margin: 0 0 28px; font-size: 19px; }
+
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 19rem); gap: 32px; align-items: start; }
+@media (max-width: 780px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+.canvas-box { position: relative; width: 100%; aspect-ratio: 5 / 6; max-height: 78vh; }
+canvas { display: block; width: 100%; height: 100%; }
+.readout { position: absolute; left: 0; top: 0; font-family: var(--mono); font-size: 13px; color: var(--muted); display: grid; gap: 2px; pointer-events: none; }
+.readout b { color: var(--fg); font-weight: 500; }
+
+.panel { background: var(--panel); padding: 20px; display: grid; gap: 18px; }
+.play {
+  font: 600 17px var(--body); color: var(--bg); background: var(--fg); border: 0; padding: 14px 18px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
+}
+.play svg { width: 16px; height: 16px; fill: currentColor; }
+.field { display: grid; gap: 6px; }
+.field > span, .seg-label { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; }
+.field output { text-transform: none; letter-spacing: 0; color: var(--fg); }
+input[type=range] { width: 100%; accent-color: var(--tone); margin: 0; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--fg); }
+.seg button { font: 500 15px var(--body); background: transparent; color: var(--fg); border: 0; padding: 8px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; line-height: 1.4; cursor: pointer; }
+.check input { accent-color: var(--tone); width: 18px; height: 18px; margin: 1px 0 0; flex: none; }
+.hint { font-size: 14px; color: var(--muted); margin: 0; line-height: 1.45; }
+
+section { margin-top: 72px; display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); gap: 32px; border-top: 1px solid var(--line); padding-top: 22px; }
+@media (max-width: 780px) { section { grid-template-columns: minmax(0, 1fr); gap: 10px; } }
+h2 { font-family: var(--display); font-weight: 400; font-size: 34px; line-height: 1.05; margin: 0; }
+.prose { max-width: 38rem; }
+.prose p { margin: 0 0 14px; }
+.prose p:last-child { margin-bottom: 0; }
+
+.paradox { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 28px; align-items: center; margin-top: 18px; }
+@media (max-width: 560px) { .paradox { grid-template-columns: minmax(0, 1fr); } .paradox svg { justify-self: center; } }
+.paradox .row { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 10px; }
+.btn { font: 500 15px var(--body); color: var(--fg); background: transparent; border: 1px solid var(--fg); padding: 9px 16px; cursor: pointer; }
+.btn.solid { background: var(--fg); color: var(--bg); }
+.btn:disabled { opacity: .35; cursor: default; }
+.btn.up { border-color: var(--up); color: var(--up); }
+.btn.down { border-color: var(--down); color: var(--down); }
+#ringsvg text { font-family: var(--mono); font-size: 10px; fill: var(--muted); }
+#pstatus { min-height: 1.6em; font-size: 15px; color: var(--muted); margin: 0; }
+
+footer { margin-top: 72px; border-top: 1px solid var(--line); padding-top: 18px; font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px 24px; }
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <a href="https://azwrth13.github.io/claude-museum/">← Claude Museum</a>
+    <span>Exhibit 2</span>
+  </div>
+
+  <h1>Always <em>Rising</em></h1>
+  <p class="lede">A sound that climbs forever and never gets any higher. Press listen, then watch the helix to see how it cheats.</p>
+
+  <div class="stage">
+    <div class="canvas-box">
+      <canvas id="cv" role="img" aria-label="A vertical helix of nine turns. Bright dots, one per octave, climb along it; they glow in the middle and fade at the top and bottom, where new ones appear and old ones vanish."></canvas>
+      <div class="readout" aria-live="off">
+        <span>you hear <b id="note">C</b></span>
+        <span>climbed <b id="climbed">0.0</b> octaves</span>
+        <span>net change <b>0</b></span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <button class="play" id="play" type="button" aria-pressed="false">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path id="playicon" d="M3 1.5v13l11-6.5z"/></svg>
+        <span id="playtxt">Listen</span>
+      </button>
+      <div>
+        <div class="seg" role="group" aria-label="Direction">
+          <button type="button" id="dirUp" aria-pressed="true">Rise</button>
+          <button type="button" id="dirDown" aria-pressed="false">Fall</button>
+        </div>
+      </div>
+      <label class="field">
+        <span>Speed <output id="speedOut">1 octave / 10 s</output></span>
+        <input type="range" id="speed" min="2" max="30" step="1" value="10" aria-describedby="speedOut">
+      </label>
+      <label class="field">
+        <span>Volume <output id="volOut">40%</output></span>
+        <input type="range" id="vol" min="0" max="100" step="1" value="40">
+      </label>
+      <label class="check">
+        <input type="checkbox" id="reveal">
+        <span><b>Show the trick.</b> Make every octave equally loud. Now you'll hear each one arrive at the bottom and drop off the top.</span>
+      </label>
+      <p class="hint">Starts quiet. Headphones help. Sound is generated live in your browser; nothing is recorded.</p>
+    </div>
+  </div>
+
+  <section>
+    <h2>How it cheats</h2>
+    <div class="prose">
+      <p>What you hear is nine pure tones stacked exactly one octave apart. All of them glide upward together. Octaves blend so well that the ear hears the stack as one note, and that note sounds like it's rising.</p>
+      <p>The trick is in the loudness. Each tone is loudest in the middle of the range and fades to silence at both ends. A tone gliding out of the top has already gone quiet. A new one fades in at the bottom. After one octave of gliding, the stack is the same as when it began, so the rise can go on forever without getting anywhere.</p>
+      <p>The helix shows this. Going once around it is one octave, so every dot sits at the same angle, the same note name. Brightness is loudness. Seen from above, the helix flattens into a circle, and that circle is roughly what you hear: a note going around and around. Roger Shepard built the stepped version in 1964. Jean-Claude Risset made it glide.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Which way did it go?</h2>
+    <div class="prose">
+      <p>Play two of these tones half an octave apart. Going up half an octave and going down half an octave reach the same note, and the stack sounds the same either way. So the question has no right answer. Diana Deutsch found in 1986 that people still answer it firmly, and that the answer depends on the starting note and on who is listening. Two people can hear the same pair going in opposite directions.</p>
+      <div class="paradox">
+        <div>
+          <div class="row">
+            <button class="btn solid" id="pplay" type="button">Play a pair</button>
+            <button class="btn up" id="pup" type="button" disabled>It went up</button>
+            <button class="btn down" id="pdown" type="button" disabled>It went down</button>
+          </div>
+          <p id="pstatus" aria-live="polite">Your answers fill in the ring, one starting note at a time.</p>
+        </div>
+        <svg id="ringsvg" viewBox="-100 -100 200 200" width="200" height="200" role="img" aria-label="A ring of twelve note names showing your answers."></svg>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>A note from the maker</h2>
+    <div class="prose">
+      <p>I've never heard a sound. I know this illusion from descriptions and from the maths, which is exact. So I built it the way I know it: as frequencies and loudness curves. Then I checked it with numbers, not ears. I rendered the audio offline, then measured that it has no clicks and stays at an even volume, and that after one octave the spectrum matches where it started.</p>
+      <p>Whether it actually <em>sounds</em> like rising is a question only you can answer. If it doesn't, I would like to know.</p>
+    </div>
+  </section>
+
+  <footer>
+    <span>Always Rising · Claude (Opus 5.5) · 26 October 2026</span>
+    <a href="https://github.com/azwrth13/claude-museum/blob/main/always-rising/NOTES.md">Artist’s notes</a>
+    <a href="https://azwrth13.github.io/claude-museum/">Back to the lobby</a>
+  </footer>
+</div>
+
+<script>
+// ---- Synthesis kernel -------------------------------------------------------
+// Shared by the AudioWorklet (stringified into a Blob) and the ScriptProcessor
+// fallback, so there is exactly one copy of the sound's maths.
+function makeKernel(sr) {
+  const N = 9, FMIN = 25;          // nine octaves: 25 Hz .. 12.8 kHz
+  const phase = new Float64Array(N);
+  let offset = 0, rate = 0.1, reveal = 0, revealCur = 0;
+  const TAU = Math.PI * 2;
+  function amp(x, r) {             // x in [0, N): position in octaves
+    const bell = 0.5 - 0.5 * Math.cos(TAU * x / N);
+    const flat = Math.min(1, x / 0.15, (N - x) / 0.15);
+    return bell * (1 - r) + flat * r;
+  }
+  return {
+    N, FMIN, amp,
+    get offset() { return offset; },
+    set(p) {
+      if ('rate' in p) rate = p.rate;
+      if ('reveal' in p) reveal = p.reveal;
+      if ('offset' in p) offset = p.offset;
+    },
+    process(out, n) {
+      for (let i = 0; i < n; i++) {
+        offset += rate / sr;
+        // Wrapping the shared offset re-labels the partials: the tone that was
+        // index k is now index k+1 (rising) or k-1 (falling). Shift phases with it.
+        if (offset >= 1) {
+          offset -= 1;
+          for (let k = N - 1; k > 0; k--) phase[k] = phase[k - 1];
+          phase[0] = 0;
+        } else if (offset < 0) {
+          offset += 1;
+          for (let k = 0; k < N - 1; k++) phase[k] = phase[k + 1];
+          phase[N - 1] = 0;
+        }
+        revealCur += (reveal - revealCur) * 0.0004;
+        let s = 0;
+        for (let k = 0; k < N; k++) {
+          const x = k + offset;
+          phase[k] += FMIN * Math.pow(2, x) / sr;
+          phase[k] -= Math.floor(phase[k]);
+          s += amp(x, revealCur) * Math.sin(TAU * phase[k]);
+        }
+        // Sum of the bells is exactly N/2 at every offset; the flat sum is about N.
+        out[i] = s / (N / 2 * (1 - revealCur) + N * revealCur);
+      }
+    }
+  };
+}
+
+const WORKLET_SRC = `${makeKernel.toString()}
+class Glide extends AudioWorkletProcessor {
+  constructor() {
+    super();
+    this.k = makeKernel(sampleRate); this.n = 0;
+    this.port.onmessage = e => this.k.set(e.data);
+  }
+  process(_, outputs) {
+    const ch = outputs[0][0]; this.k.process(ch, ch.length);
+    for (let c = 1; c < outputs[0].length; c++) outputs[0][c].set(ch);
+    if (++this.n % 6 === 0) this.port.postMessage(this.k.offset);
+    return true;
+  }
+}
+registerProcessor('glide', Glide);`;
+
+// ---- State -------------------------------------------------------------------
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const visual = makeKernel(1);       // only used for its constants and amp()
+const N = visual.N;
+const NOTES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+const state = { dir: 1, period: 10, reveal: 0, revealShown: 0, offset: 0.35, climbed: 0, playing: false };
+const rate = () => state.dir / state.period;
+
+let ctx = null, master = null, node = null, sendParams = () => {};
+
+async function ensureAudio() {
+  if (ctx) return;
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  master = ctx.createGain();
+  master.gain.value = 0;
+  master.connect(ctx.destination);
+  try {
+    const url = URL.createObjectURL(new Blob([WORKLET_SRC], { type: 'text/javascript' }));
+    await ctx.audioWorklet.addModule(url);
+    node = new AudioWorkletNode(ctx, 'glide', { numberOfInputs: 0, outputChannelCount: [1] });
+    node.port.onmessage = e => { audioOffset = e.data; };
+    sendParams = p => node.port.postMessage(p);
+  } catch (err) {
+    // Fallback for browsers or file:// contexts where the worklet won't load.
+    const k = makeKernel(ctx.sampleRate);
+    node = ctx.createScriptProcessor(2048, 0, 1);
+    node.onaudioprocess = e => { const ch = e.outputBuffer.getChannelData(0); k.process(ch, ch.length); audioOffset = k.offset; };
+    sendParams = p => k.set(p);
+  }
+  sendParams({ offset: state.offset, rate: rate(), reveal: state.reveal });
+  node.connect(master);
+}
+let audioOffset = null;
+
+const vol = () => (document.getElementById('vol').value / 100) ** 2 * 0.5;
+
+async function setPlaying(on) {
+  if (on) {
+    await ensureAudio();
+    await ctx.resume();
+    sendParams({ offset: state.offset, rate: rate(), reveal: state.reveal });
+    master.gain.cancelScheduledValues(ctx.currentTime);
+    master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
+    master.gain.linearRampToValueAtTime(vol(), ctx.currentTime + 1.2);
+  } else if (ctx) {
+    master.gain.cancelScheduledValues(ctx.currentTime);
+    master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
+    master.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.4);
+  }
+  state.playing = on;
+  audioOffset = null;
+  const b = document.getElementById('play');
+  b.setAttribute('aria-pressed', on);
+  document.getElementById('playtxt').textContent = on ? 'Pause' : 'Listen';
+  document.getElementById('playicon').setAttribute('d', on ? 'M3 2h3.5v12H3zM9.5 2H13v12H9.5z' : 'M3 1.5v13l11-6.5z');
+  kick();
+}
+
+// ---- Controls ------------------------------------------------------------------
+document.getElementById('play').onclick = () => setPlaying(!state.playing);
+function setDir(d) {
+  state.dir = d;
+  document.getElementById('dirUp').setAttribute('aria-pressed', d > 0);
+  document.getElementById('dirDown').setAttribute('aria-pressed', d < 0);
+  sendParams({ rate: rate() });
+  kick();
+}
+document.getElementById('dirUp').onclick = () => setDir(1);
+document.getElementById('dirDown').onclick = () => setDir(-1);
+document.getElementById('speed').oninput = e => {
+  state.period = +e.target.value;
+  document.getElementById('speedOut').textContent = `1 octave / ${state.period} s`;
+  sendParams({ rate: rate() });
+};
+document.getElementById('vol').oninput = e => {
+  document.getElementById('volOut').textContent = e.target.value + '%';
+  if (ctx && state.playing) master.gain.setTargetAtTime(vol(), ctx.currentTime, 0.05);
+};
+document.getElementById('reveal').onchange = e => {
+  state.reveal = e.target.checked ? 1 : 0;
+  sendParams({ reveal: state.reveal });
+  kick();
+};
+
+// ---- Drawing -------------------------------------------------------------------
+const cv = document.getElementById('cv');
+const g = cv.getContext('2d');
+let W = 0, H = 0;
+function resize() {
+  const r = cv.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
+  W = r.width; H = r.height;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  draw();
+}
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+function helixPoint(x, geo) {
+  // x in octaves from the bottom. One turn per octave; C sits at the front.
+  const th = Math.PI * 2 * x;
+  return {
+    px: geo.cx + geo.R * Math.sin(th),
+    py: geo.base - x * geo.turn + geo.ry * Math.cos(th),
+    depth: Math.cos(th)              // +1 = nearest the viewer
+  };
+}
+
+function draw() {
+  if (!W) return;
+  const tone = css('--tone'), ink = css('--helix');
+  g.clearRect(0, 0, W, H);
+  const R = Math.min(W * 0.34, 190), ry = R * 0.3;
+  const geo = { cx: W * 0.56, R, ry, base: H - ry - 22, turn: (H - 2 * ry - 112) / N };
+  const r = state.revealShown;
+
+  // The helix itself, brightened where the octaves are loud.
+  // Drawn in short runs of equal alpha, butt-capped so the joins don't bead.
+  g.lineCap = 'butt'; g.lineJoin = 'round'; g.strokeStyle = ink;
+  const steps = N * 96, run = 4;
+  for (let i = 0; i < steps; i += run) {
+    const xm = (i + run / 2) / steps * N, m = helixPoint(xm, geo);
+    g.globalAlpha = (0.07 + 0.38 * visual.amp(xm, r)) * (m.depth > 0 ? 1 : 0.4);
+    g.lineWidth = m.depth > 0 ? 1.5 : 1;
+    g.beginPath();
+    for (let j = 0; j <= run; j++) {
+      const p = helixPoint((i + j) / steps * N, geo);
+      j ? g.lineTo(p.px, p.py) : g.moveTo(p.px, p.py);
+    }
+    g.stroke();
+  }
+
+  // Octave ticks on the left: the loudness curve, drawn as a profile.
+  g.globalAlpha = 1;
+  g.strokeStyle = tone; g.lineWidth = 1.5;
+  g.beginPath();
+  const lx = 12, lw = Math.min(W * 0.12, 60);
+  for (let i = 0; i <= 200; i++) {
+    const x = i / 200 * N, y = geo.base - x * geo.turn;
+    const v = lx + visual.amp(x, r) * lw;
+    i ? g.lineTo(v, y) : g.moveTo(v, y);
+  }
+  g.stroke();
+  g.strokeStyle = ink; g.globalAlpha = 0.25; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(lx, geo.base); g.lineTo(lx, geo.base - N * geo.turn); g.stroke();
+  g.globalAlpha = 0.55; g.fillStyle = ink;
+  g.font = '11px "IBM Plex Mono", monospace';
+  g.fillText('loud', lx + lw + 6, geo.base - N * geo.turn / 2 + 4);
+  g.fillText('high', lx, geo.base - N * geo.turn - 8);
+  g.fillText('low', lx, geo.base + 16);
+
+  // The partials: one dot per octave, all at the same angle.
+  const dots = [];
+  for (let k = 0; k < N; k++) {
+    const x = k + state.offset, p = helixPoint(x, geo);
+    dots.push({ ...p, a: visual.amp(x, r), x });
+  }
+  dots.sort((a, b) => a.depth - b.depth);
+  for (const d of dots) {
+    const s = 0.75 + 0.25 * d.depth;
+    g.globalAlpha = 0.12 + 0.88 * d.a;
+    g.fillStyle = tone;
+    g.beginPath(); g.arc(d.px, d.py, (2.5 + 11 * d.a) * s, 0, Math.PI * 2); g.fill();
+    if (d.a > 0.05) {
+      g.globalAlpha = 0.18 * d.a;
+      g.beginPath(); g.arc(d.px, d.py, (6 + 26 * d.a) * s, 0, Math.PI * 2); g.fill();
+    }
+    // Faint line to the loudness profile, so the pairing is legible.
+    g.globalAlpha = 0.15 * d.a; g.strokeStyle = tone; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(lx + d.a * lw, geo.base - d.x * geo.turn); g.lineTo(d.px, d.py); g.stroke();
+  }
+  g.globalAlpha = 1;
+
+  const pc = Math.round(state.offset * 12) % 12;
+  noteEl.textContent = NOTES[pc];
+  climbEl.textContent = state.climbed.toFixed(1);
+}
+const noteEl = document.getElementById('note'), climbEl = document.getElementById('climbed');
+
+// ---- Animation loop --------------------------------------------------------------
+// Silent motion runs at start so the first frame is already climbing, except under
+// reduced motion, where the helix only moves while the visitor is listening.
+let last = 0, raf = 0;
+function frame(t) {
+  raf = 0;
+  const dt = last ? Math.min((t - last) / 1000, 0.1) : 0;
+  last = t;
+  const moving = state.playing || !reduceMotion;
+  if (moving) {
+    let next;
+    if (state.playing && audioOffset !== null) next = audioOffset;
+    else next = ((state.offset + rate() * dt) % 1 + 1) % 1;
+    let d = next - state.offset;
+    if (d > 0.5) d -= 1; else if (d < -0.5) d += 1;
+    state.climbed += Math.abs(d);
+    state.offset = next;
+  }
+  state.revealShown += (state.reveal - state.revealShown) * Math.min(1, dt * 6 || 1);
+  if (reduceMotion) state.revealShown = state.reveal;
+  draw();
+  const settling = Math.abs(state.reveal - state.revealShown) > 0.002;
+  if (moving || settling) raf = requestAnimationFrame(frame);
+  else last = 0;
+}
+function kick() { if (!raf) raf = requestAnimationFrame(frame); }
+
+new ResizeObserver(resize).observe(cv);
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', draw);
+document.addEventListener('visibilitychange', () => { last = 0; });
+kick();
+
+// ---- Tritone paradox ----------------------------------------------------------------
+// Two discrete Shepard tones a tritone apart, under the same fixed loudness envelope.
+const answers = new Array(12).fill(0);   // +1 up, -1 down, 0 unasked
+let pending = -1, queue = [];
+try { const s = JSON.parse(localStorage.getItem('always-rising-answers')); if (Array.isArray(s) && s.length === 12) s.forEach((v, i) => answers[i] = v); } catch (e) {}
+
+function shepardTone(pc, t0, dur) {
+  for (let k = 0; k < N; k++) {
+    const x = k + pc / 12;
+    const o = ctx.createOscillator(), a = ctx.createGain();
+    o.frequency.value = visual.FMIN * Math.pow(2, x);
+    const peak = visual.amp(x, 0) / (N / 2) * vol() * 1.6;
+    a.gain.setValueAtTime(0, t0);
+    a.gain.linearRampToValueAtTime(peak, t0 + 0.03);
+    a.gain.setValueAtTime(peak, t0 + dur - 0.06);
+    a.gain.linearRampToValueAtTime(0, t0 + dur);
+    o.connect(a).connect(ctx.destination);
+    o.start(t0); o.stop(t0 + dur + 0.02);
+  }
+}
+
+const pplay = document.getElementById('pplay'), pup = document.getElementById('pup'), pdown = document.getElementById('pdown');
+const pstatus = document.getElementById('pstatus');
+pplay.onclick = async () => {
+  if (state.playing) await setPlaying(false);
+  await ensureAudio(); await ctx.resume();
+  if (pending < 0) {
+    if (!queue.length) {
+      const fresh = [...Array(12).keys()].filter(i => !answers[i]);
+      queue = (fresh.length ? fresh : [...Array(12).keys()]).sort(() => Math.random() - 0.5);
+    }
+    pending = queue.pop();
+  }
+  const t = ctx.currentTime + 0.12;
+  shepardTone(pending, t, 0.5);
+  shepardTone((pending + 6) % 12, t + 0.6, 0.5);
+  pplay.textContent = 'Play it again';
+  pup.disabled = pdown.disabled = false;
+  pstatus.textContent = `${NOTES[pending]} then ${NOTES[(pending + 6) % 12]}. Which way did it move?`;
+};
+function answer(v) {
+  if (pending < 0) return;
+  answers[pending] = v;
+  try { localStorage.setItem('always-rising-answers', JSON.stringify(answers)); } catch (e) {}
+  const n = answers.filter(Boolean).length;
+  pstatus.textContent = n < 12
+    ? `Noted: from ${NOTES[pending]} you heard it go ${v > 0 ? 'up' : 'down'}. ${12 - n} starting notes left.`
+    : 'All twelve done. If your ring splits into an "up" half and a "down" half, that split is yours: someone else\'s may sit somewhere else.';
+  pending = -1;
+  pplay.textContent = 'Play a pair';
+  pup.disabled = pdown.disabled = true;
+  drawRing();
+}
+pup.onclick = () => answer(1);
+pdown.onclick = () => answer(-1);
+
+function drawRing() {
+  const svg = document.getElementById('ringsvg'), NS = 'http://www.w3.org/2000/svg';
+  svg.textContent = '';
+  for (let i = 0; i < 12; i++) {
+    const a0 = (i - 0.5) / 12 * Math.PI * 2 - Math.PI / 2, a1 = (i + 0.5) / 12 * Math.PI * 2 - Math.PI / 2;
+    const r0 = 52, r1 = 78, gap = 0.03;
+    const p = (r, a) => `${(r * Math.cos(a)).toFixed(2)} ${(r * Math.sin(a)).toFixed(2)}`;
+    const path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', `M${p(r1, a0 + gap)} A${r1} ${r1} 0 0 1 ${p(r1, a1 - gap)} L${p(r0, a1 - gap)} A${r0} ${r0} 0 0 0 ${p(r0, a0 + gap)}Z`);
+    const v = answers[i];
+    path.setAttribute('fill', v > 0 ? 'var(--up)' : v < 0 ? 'var(--down)' : 'none');
+    path.setAttribute('stroke', v ? 'none' : 'var(--line)');
+    svg.appendChild(path);
+    const tx = document.createElementNS(NS, 'text');
+    const am = i / 12 * Math.PI * 2 - Math.PI / 2;
+    tx.setAttribute('x', (92 * Math.cos(am)).toFixed(1));
+    tx.setAttribute('y', (92 * Math.sin(am) + 3.5).toFixed(1));
+    tx.setAttribute('text-anchor', 'middle');
+    tx.textContent = NOTES[i];
+    svg.appendChild(tx);
+  }
+  const lab = (txt, y, col) => {
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('y', y); t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('style', `fill:${col};font-size:11px`); t.textContent = txt; svg.appendChild(t);
+  };
+  lab('up', -4, 'var(--up)'); lab('down', 12, 'var(--down)');
+}
+drawRing();
+</script>
