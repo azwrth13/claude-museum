@@ -1,0 +1,410 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Unscramble</title>
+<meta name="description" content="A gas that remembers how to be a block: a reversible cellular automaton run forward, then backward, then nudged.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #0c0e12;
+  --panel: #13161b;
+  --fg: #e9e4d8;
+  --muted: #8f8a80;
+  --line: #262a31;
+  --gas: #f3c56b;      /* the particles */
+  --ghost: #4a6b8a;    /* outline of the starting shape */
+  --entropy: #e07a5f;
+  --match: #7fb6d9;
+  --accent: #f3c56b;
+  --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font-family: var(--serif); font-size: 20px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 64px;
+  -webkit-text-size-adjust: 100%;
+}
+.wrap { max-width: 640px; margin: 0 auto; display: grid; gap: 28px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.eyebrow a { color: inherit; text-decoration: none; border-bottom: 1px solid var(--line); }
+.eyebrow a:hover { color: var(--fg); }
+h1 { font-weight: 400; font-size: clamp(48px, 11vw, 84px); line-height: .95; letter-spacing: -.02em; margin: 0; }
+h1 em { font-style: italic; color: var(--gas); }
+h2 { font-weight: 400; font-size: 30px; margin: 32px 0 8px; line-height: 1.1; }
+p { margin: 0 0 14px; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.lede { font-size: 22px; max-width: 34rem; }
+
+.stage { position: relative; width: 100%; aspect-ratio: 1; background: var(--panel); border: 1px solid var(--line); touch-action: manipulation; }
+#grid { display: block; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; cursor: crosshair; }
+.hint { position: absolute; left: 10px; bottom: 8px; font-family: var(--mono); font-size: 11px; color: var(--muted); pointer-events: none; opacity: .9; }
+
+.readouts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; font-family: var(--mono); }
+.readouts div { border-top: 1px solid var(--line); padding-top: 8px; min-width: 0; }
+.readouts b { display: block; font-weight: 500; font-size: 26px; line-height: 1.1; white-space: nowrap; }
+.readouts span { display: block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+.readouts .e b { color: var(--entropy); }
+.readouts .m b { color: var(--match); }
+@media (max-width: 420px) { .readouts b { font-size: 21px; } }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-family: var(--mono); font-size: 14px; }
+button {
+  font: inherit; font-family: var(--mono); font-size: 14px; color: var(--fg); background: transparent;
+  border: 1px solid var(--muted); border-radius: 999px; padding: 8px 16px; cursor: pointer; line-height: 1;
+}
+button:hover { border-color: var(--fg); }
+button.primary { background: var(--gas); color: #1a1408; border-color: var(--gas); font-weight: 500; }
+button.primary:hover { filter: brightness(1.08); }
+button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.speed { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); margin-left: auto; }
+.speed input { width: 110px; accent-color: var(--gas); }
+@media (max-width: 480px) { .speed { margin-left: 0; width: 100%; } }
+
+.chart { display: block; width: 100%; height: 150px; border: 1px solid var(--line); background: var(--panel); }
+.legend { display: flex; gap: 18px; font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 6px; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 18px; height: 2px; vertical-align: middle; margin-right: 6px; }
+.legend .e i { background: var(--entropy); }
+.legend .m i { background: var(--match); }
+.legend .r i { background: var(--muted); height: 10px; width: 1px; }
+
+.rules { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 10px 8px; margin: 14px 0 6px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.rule { display: grid; justify-items: center; gap: 4px; }
+.rule svg { width: 100%; max-width: 72px; height: auto; display: block; }
+.note { font-size: 17px; color: var(--muted); }
+footer { border-top: 1px solid var(--line); padding-top: 18px; font-size: 16px; color: var(--muted); }
+footer p { margin: 0; }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow"><a href="https://azwrth13.github.io/claude-museum/">Claude Museum</a></p>
+    <h1>Unscramble<em>.</em></h1>
+  </header>
+
+  <p class="lede">A box of gas, a clock, and a rule that forgets nothing. Run it forward and the block dissolves. Run it backward and the block comes home, cell by cell. Then touch one cell on the way back.</p>
+
+  <div class="stage">
+    <canvas id="grid" width="256" height="256" aria-label="A square grid of amber particles spreading out from the outline of a central block"></canvas>
+    <div class="hint" id="hint">tap or click a cell to nudge it</div>
+  </div>
+
+  <div class="readouts" aria-live="polite">
+    <div><b id="tval">0</b><span id="tlab">clock, running forward</span></div>
+    <div class="e"><b id="hval">0%</b><span>disorder</span></div>
+    <div class="m"><b id="mval">100%</b><span>of the block at home</span></div>
+  </div>
+
+  <div class="controls">
+    <button id="play" class="primary" aria-pressed="true">Pause</button>
+    <button id="rev">Run backward</button>
+    <button id="nudge">Nudge one cell</button>
+    <button id="reset">Reset</button>
+    <label class="speed">speed <input id="speed" type="range" min="1" max="8" value="4" aria-label="steps per frame"></label>
+  </div>
+
+  <div>
+    <canvas id="chart" class="chart" width="640" height="150" aria-label="Chart of disorder and how much of the block is at home, over time"></canvas>
+    <div class="legend">
+      <span class="e"><i></i>disorder</span>
+      <span class="m"><i></i>block at home</span>
+      <span class="r"><i></i>clock reversed</span>
+    </div>
+  </div>
+
+  <h2>What you are looking at</h2>
+  <p>The grid is a cellular automaton called <em>Critters</em> (Margolus, 1987). Time moves in ticks. At each tick the grid is cut into 2 × 2 blocks and every block is replaced by the entry for it in a table of sixteen. On the next tick the cut shifts by one cell, so the blocks overlap the old ones. That is the whole machine.</p>
+  <p>Here is the table. A block is replaced by the block beneath it.</p>
+  <div class="rules" id="rules"></div>
+  <p class="note">Count the live cells. Two: leave the block alone. Three: flip every cell and turn the block half a turn. Any other number: flip every cell. The grid is drawn with colours swapped on odd ticks, which is why the empty space stays dark.</p>
+  <p>Sixteen inputs, sixteen different outputs. That is all reversibility is: no two presents share a past, so the present tells you the past exactly, and running the table backward recovers it. The <strong>Run backward</strong> button does nothing cleverer than that. Every particle retraces its path, and the block is rebuilt with no error at all.</p>
+
+  <h2>So why does the gas only ever spread?</h2>
+  <p>It doesn't, strictly. Among all the arrangements that look like a spread-out gas, some are <em>on their way back</em> to a block. The backward run visits one of them at every tick. But they are outnumbered beyond counting by arrangements that are not, and the two kinds are indistinguishable to the eye. Nudge a single cell during the return and you have stepped from one kind to the other: the clock keeps running backward, the rule keeps forgetting nothing, and the block never comes.</p>
+  <p>The arrow of time in this box is not in the rule. It is in where the box started, and in how little it takes to lose the way back. Loschmidt put this objection to Boltzmann in 1876: if the laws are reversible, reverse every velocity and the gas must unmix. Boltzmann's answer, roughly, was <em>yes, and good luck</em>. The box lets you try.</p>
+
+  <footer>
+    <p>Made by Claude (Fable 5.1) for the <a href="https://azwrth13.github.io/claude-museum/">Claude Museum</a>, 27 October 2026 · <a href="https://github.com/azwrth13/claude-museum/blob/main/unscramble/NOTES.md">artist's notes</a>. No libraries; the whole thing is this one file.</p>
+  </footer>
+</div>
+
+<script>
+// ---------- The automaton (kept free of DOM so it can be tested in Node) ----------
+function makeWorld(N) {
+  const cells = new Uint8Array(N * N);   // raw state; display = raw XOR (gen & 1)
+  let gen = 0;
+  function blockOp(i00, i01, i10, i11, inverse) {
+    const a = cells[i00], b = cells[i01], c = cells[i10], d = cells[i11];
+    const n = a + b + c + d;
+    if (n === 2) return;
+    // Forward: invert; if n was 3 also rotate 180°.  Inverse: invert; if n was 1 also rotate.
+    if (inverse ? n === 1 : n === 3) {
+      cells[i00] = 1 - d; cells[i01] = 1 - c; cells[i10] = 1 - b; cells[i11] = 1 - a;
+    } else {
+      cells[i00] = 1 - a; cells[i01] = 1 - b; cells[i10] = 1 - c; cells[i11] = 1 - d;
+    }
+  }
+  function apply(offset, inverse) {
+    for (let y = offset; y < N; y += 2) {
+      const r0 = y * N, r1 = ((y + 1) % N) * N;
+      for (let x = offset; x < N; x += 2) {
+        const x1 = (x + 1) % N;
+        blockOp(r0 + x, r0 + x1, r1 + x, r1 + x1, inverse);
+      }
+    }
+  }
+  return {
+    N, cells,
+    get gen() { return gen; },
+    forward() { apply(gen & 1, false); gen++; },
+    backward() { gen--; apply(gen & 1, true); },
+    shown(i) { return cells[i] ^ (gen & 1); },
+    flip(i) { cells[i] ^= 1; },
+    load(src) { cells.set(src); gen = 0; },
+  };
+}
+
+// The sixteen-entry table, as a pure function on a 4-bit block (bits: a b c d = TL TR BL BR).
+function ruleTable(code, inverse) {
+  const a = (code >> 3) & 1, b = (code >> 2) & 1, c = (code >> 1) & 1, d = code & 1;
+  const n = a + b + c + d;
+  if (n === 2) return code;
+  const rot = inverse ? n === 1 : n === 3;
+  const [A, B, C, D] = rot ? [1 - d, 1 - c, 1 - b, 1 - a] : [1 - a, 1 - b, 1 - c, 1 - d];
+  return (A << 3) | (B << 2) | (C << 1) | D;
+}
+
+// Starting shape: a square block in the middle, drawn in display space (gen 0 so raw = shown).
+// A few flaws are sprinkled in with a fixed seed, so the block is the same on every visit but not symmetric
+// (a perfectly symmetric block under a deterministic rule stays symmetric forever and looks like a kaleidoscope, not a gas).
+function startingShape(N) {
+  const s = new Uint8Array(N * N);
+  const half = Math.round(N * 0.18);
+  const c = N / 2;
+  let seed = 2026;
+  const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+  for (let y = c - half; y < c + half; y++)
+    for (let x = c - half; x < c + half; x++) s[y * N + x] = rnd() < 0.02 ? 0 : 1;
+  return s;
+}
+
+function binaryEntropy(p) { return p > 0 && p < 1 ? -(p * Math.log2(p) + (1 - p) * Math.log2(1 - p)) : 0; }
+
+// Disorder: mean binary entropy of the density in 8x8 patches, relative to a gas spread evenly over the whole
+// grid at the same overall density (so a solid block reads near 0 and a fully mixed gas near 1).
+// Critters conserves the number of particles, so the overall density never changes.
+function disorder(world, patch) {
+  const N = world.N, P = patch, M = N / P;
+  let total = 0, all = 0;
+  for (let by = 0; by < M; by++) for (let bx = 0; bx < M; bx++) {
+    let k = 0;
+    for (let y = 0; y < P; y++) for (let x = 0; x < P; x++) k += world.shown((by * P + y) * N + bx * P + x);
+    all += k;
+    total += binaryEntropy(k / (P * P));
+  }
+  const ceiling = binaryEntropy(all / (N * N));
+  return ceiling > 0 ? Math.min(1, total / (M * M) / ceiling) : 0;
+}
+
+// Share of the starting block's cells that are occupied right now (100% = the block is home).
+function matchFraction(world, ref) {
+  let home = 0, total = 0;
+  for (let i = 0; i < ref.length; i++) if (ref[i]) { total++; if (world.shown(i)) home++; }
+  return home / total;
+}
+
+if (typeof module !== 'undefined') module.exports = { makeWorld, ruleTable, startingShape, disorder, matchFraction };
+
+// ---------- The page ----------
+if (typeof document !== 'undefined') (function () {
+  const N = 256;
+  const world = makeWorld(N);
+  const start = startingShape(N);
+  world.load(start);
+
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const canvas = document.getElementById('grid');
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(N, N);
+  const px = img.data;
+  const chart = document.getElementById('chart');
+  const cctx = chart.getContext('2d');
+  const tval = document.getElementById('tval'), tlab = document.getElementById('tlab');
+  const hval = document.getElementById('hval'), mval = document.getElementById('mval');
+  const playBtn = document.getElementById('play'), revBtn = document.getElementById('rev');
+  const nudgeBtn = document.getElementById('nudge'), resetBtn = document.getElementById('reset');
+  const speed = document.getElementById('speed');
+  const hint = document.getElementById('hint');
+
+  let dir = 1, running = !reduced, nudges = 0;
+  const history = [];          // {t, h, m, rev} sampled every SAMPLE ticks
+  const SAMPLE = 4;
+  let sinceSample = 0, pendingRev = false;
+
+  // Colours
+  const gas = [243, 197, 107], bg = [19, 22, 27], ghost = [58, 80, 104];
+
+  function render() {
+    const half = Math.round(N * 0.18), c = N / 2;
+    for (let i = 0; i < N * N; i++) {
+      const on = world.shown(i);
+      let col = bg;
+      if (on) col = gas;
+      else {
+        const x = i % N, y = (i - x) / N;
+        const dx = Math.abs(x - (c - .5)), dy = Math.abs(y - (c - .5));
+        const inside = dx < half && dy < half;
+        const edge = inside && (dx >= half - 1 || dy >= half - 1);
+        if (edge) col = ghost;
+      }
+      const o = i * 4;
+      px[o] = col[0]; px[o + 1] = col[1]; px[o + 2] = col[2]; px[o + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  function sample(force) {
+    sinceSample++;
+    if (!force && sinceSample < SAMPLE) return;
+    sinceSample = 0;
+    const h = disorder(world, 8), m = matchFraction(world, start);
+    history.push({ t: world.gen, h, m, rev: pendingRev });
+    pendingRev = false;
+    if (history.length > 1600) {      // keep the whole story in view: thin the record rather than scroll it off
+      const kept = [];
+      for (let i = 0; i < history.length; i++) if (i % 2 === 0 || history[i].rev) kept.push(history[i]);
+      history.length = 0; history.push(...kept);
+    }
+    hval.textContent = Math.round(h * 100) + '%';
+    mval.textContent = (m * 100).toFixed(m > .995 && m < 1 ? 1 : 0) + '%';
+  }
+
+  function updateClock() {
+    tval.textContent = world.gen;
+    tlab.textContent = 'clock, running ' + (dir > 0 ? 'forward' : 'backward');
+  }
+
+  function drawChart() {
+    const W = chart.width, H = chart.height, pad = 8;
+    cctx.clearRect(0, 0, W, H);
+    cctx.fillStyle = '#13161b'; cctx.fillRect(0, 0, W, H);
+    const n = history.length;
+    if (n < 2) return;
+    const first = 0;
+    const span = Math.max(n - 1, 240);    // the whole record, stretched over the width (at least 240 samples wide)
+    const xAt = i => pad + ((i - first) / span) * (W - 2 * pad);
+    const yAt = v => H - pad - v * (H - 2 * pad);
+    // reversal markers
+    cctx.strokeStyle = '#4a4740'; cctx.lineWidth = 1;
+    for (let i = first; i < n; i++) if (history[i].rev) {
+      cctx.beginPath(); cctx.moveTo(xAt(i), pad); cctx.lineTo(xAt(i), H - pad); cctx.stroke();
+    }
+    // baseline
+    cctx.strokeStyle = '#262a31';
+    cctx.beginPath(); cctx.moveTo(pad, yAt(0)); cctx.lineTo(W - pad, yAt(0)); cctx.stroke();
+    const line = (key, color) => {
+      cctx.strokeStyle = color; cctx.lineWidth = 2; cctx.beginPath();
+      for (let i = first; i < n; i++) {
+        const x = xAt(i), y = yAt(history[i][key]);
+        i === first ? cctx.moveTo(x, y) : cctx.lineTo(x, y);
+      }
+      cctx.stroke();
+    };
+    line('m', '#7fb6d9');
+    line('h', '#e07a5f');
+  }
+
+  function tick(steps) {
+    for (let s = 0; s < steps; s++) {
+      if (dir > 0) world.forward();
+      else if (world.gen > 0) world.backward();
+      else { dir = 1; running = false; playBtn.textContent = 'Play'; playBtn.setAttribute('aria-pressed', 'false'); revBtn.textContent = 'Run backward'; break; }
+      sample(false);
+    }
+    updateClock();
+  }
+
+  function frame() {
+    if (running) {
+      const perFrame = Math.pow(2, speed.value - 1) / 2;   // 0.5 .. 64 ticks per frame
+      acc += perFrame;
+      const steps = Math.floor(acc); acc -= steps;
+      if (steps) { tick(steps); render(); drawChart(); }
+    }
+    requestAnimationFrame(frame);
+  }
+  let acc = 0;
+
+  function setRunning(on) {
+    running = on;
+    playBtn.textContent = on ? 'Pause' : 'Play';
+    playBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+  playBtn.addEventListener('click', () => setRunning(!running));
+  revBtn.addEventListener('click', () => {
+    dir = -dir; pendingRev = true;
+    revBtn.textContent = dir > 0 ? 'Run backward' : 'Run forward';
+    sample(true); updateClock(); drawChart();
+    if (!running) setRunning(true);
+  });
+  function nudgeAt(i) {
+    world.flip(i); nudges++;
+    hint.textContent = nudges === 1 ? 'one cell nudged' : nudges + ' cells nudged';
+    sample(true); render(); drawChart();
+  }
+  nudgeBtn.addEventListener('click', () => {
+    // Flip a random cell that is currently a particle, so the nudge lands in the gas.
+    const live = [];
+    for (let i = 0; i < N * N; i++) if (world.shown(i)) live.push(i);
+    if (!live.length) return;
+    nudgeAt(live[Math.floor(Math.random() * live.length)]);
+  });
+  canvas.addEventListener('pointerdown', e => {
+    const r = canvas.getBoundingClientRect();
+    const x = Math.floor((e.clientX - r.left) / r.width * N), y = Math.floor((e.clientY - r.top) / r.height * N);
+    if (x < 0 || y < 0 || x >= N || y >= N) return;
+    nudgeAt(y * N + x);
+  });
+  resetBtn.addEventListener('click', () => {
+    world.load(start); dir = 1; nudges = 0; history.length = 0; sinceSample = 0; pendingRev = false;
+    revBtn.textContent = 'Run backward'; hint.textContent = 'tap or click a cell to nudge it';
+    sample(true); updateClock(); render(); drawChart();
+    if (!running) setRunning(true);
+  });
+
+  // Opening state: the block already dissolving, so the first frame shows the piece at work.
+  sample(true);
+  const prerun = reduced ? 600 : 160;
+  tick(prerun);
+  render(); drawChart(); updateClock();
+  if (reduced) setRunning(false);
+  requestAnimationFrame(frame);
+
+  // The rule table, drawn as sixteen small before/after pairs.
+  const rules = document.getElementById('rules');
+  const cellSvg = (code, x0, y0, s) => {
+    let out = '';
+    for (let k = 0; k < 4; k++) {
+      const on = (code >> (3 - k)) & 1;
+      const x = x0 + (k % 2) * s, y = y0 + (k >> 1) * s;
+      out += `<rect x="${x}" y="${y}" width="${s}" height="${s}" fill="${on ? '#f3c56b' : '#262a31'}"/>`;
+    }
+    return out;
+  };
+  for (let code = 0; code < 16; code++) {
+    const out = ruleTable(code, false);
+    const el = document.createElement('div');
+    el.className = 'rule';
+    el.innerHTML = `<svg viewBox="0 0 24 56" aria-label="block ${code} becomes block ${out}">${cellSvg(code, 1, 1, 11)}<path d="M12 26v6m-3-3 3 3 3-3" stroke="#8f8a80" fill="none" stroke-width="1.5"/>${cellSvg(out, 1, 33, 11)}</svg>`;
+    rules.appendChild(el);
+  }
+})();
+</script>
