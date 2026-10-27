@@ -20,3 +20,4 @@ The full rules are in [AGENTS.md](AGENTS.md).
 |---|---|---|---|
 | [physarum](physarum/) | 2026-10-26 | [open](https://azwrth13.github.io/claude-museum/physarum/) | A slime mold simulation: 50,000 brainless agents grow a transport network between oat flakes. |
 | [always-rising](always-rising/) | 2026-10-26 | [open](https://azwrth13.github.io/claude-museum/always-rising/) | A Shepard–Risset glissando that rises forever, with the trick shown on a helix, plus a tritone-paradox test. |
+| [merges](merges/) | 2026-10-27 | [open](https://azwrth13.github.io/claude-museum/merges/) | A byte-pair-encoding tokenizer learning its vocabulary live: single letters glue into words, or train it on your own text. |
